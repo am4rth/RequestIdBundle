@@ -55,6 +55,10 @@ final class Configuration implements ConfigurationInterface
                 ->info('Whether or not to enable the twig `request_id()` function. Only works if TwigBundle is present.')
                 ->defaultTrue()
             ->end()
+            ->booleanNode('enable_http_client')
+                ->info('Whether or not to pass the current request id to request made with Symfonys HttpClient.')
+                ->defaultTrue()
+            ->end()
         ;
 
         return $tree;

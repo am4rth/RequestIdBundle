@@ -13,6 +13,9 @@
 
 namespace Chrisguitarguy\RequestId\DependencyInjection;
 
+use Chrisguitarguy\RequestId\HttpClient\RequestIdAwareHttpClient;
+use Chrisguitarguy\RequestId\RequestIdStoreAwareInterface;
+use Psr\Log\LoggerAwareInterface;
 use Ramsey\Uuid\UuidFactory;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -59,6 +62,10 @@ final class ChrisguitarguyRequestIdExtension extends ConfigurableExtension
             ->setPublic(false)
             ->addTag('kernel.event_subscriber');
 
+        $container
+            ->registerForAutoconfiguration(RequestIdStoreAwareInterface::class)
+            ->addMethodCall('setRequestIdStorage', [new Reference($storeId)]);
+
         if (!empty($config['enable_monolog'])) {
             $container->register(RequestIdProcessor::class)
                 ->addArgument(new Reference($storeId))
@@ -71,6 +78,20 @@ final class ChrisguitarguyRequestIdExtension extends ConfigurableExtension
                 ->addArgument(new Reference($storeId))
                 ->setPublic(false)
                 ->addTag('twig.extension');
+        }
+
+        if (class_exists('Symfony\Component\HttpClient\HttpClient') && !empty($config['enable_http_client'])) {
+            $container->register(RequestIdAwareHttpClient::class)
+                ->setDecoratedService(
+                    \Symfony\Contracts\HttpClient\HttpClientInterface::class,
+                    \Symfony\Contracts\HttpClient\HttpClientInterface::class . '.inner',
+                    1000
+                )
+                ->setArguments([
+                    $config['request_header'],
+                    new Reference($storeId)
+                ])
+                ->setPublic(false);
         }
     }
 }
